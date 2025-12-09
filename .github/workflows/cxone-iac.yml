@@ -1,0 +1,36 @@
+
+name: Checkmarx IaC Scan
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  cxone-iac-scan:
+    if: github.repository == 'monadontsona-cloud/data-platform-iac'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Checkmarx AST CLI (Linux)
+        run: |
+          curl -L https://github.com/Checkmarx/ast-cli/releases/download/2.0.70/ast-cli_2.0.70_linux_x64.tar.gz -o ast-cli.tar.gz
+          tar -xvf ast-cli.tar.gz
+          rm ast-cli.tar.gz
+          chmod +x cx
+
+      - name: Run IaC Scan
+        env:
+          CX_CLIENT_ID: ${{ secrets.CX_CLIENT_ID }}
+          CX_CLIENT_SECRET: ${{ secrets.CX_CLIENT_SECRET }}
+        run: |
+          ./cx scan create \
+            --file-source "$GITHUB_WORKSPACE/" \
+            --scan-types "iac-Security" \
+            --base-uri "https://fistage.cxone.cloud" \
+            --tenant "fistage" \
+            --client-id "$CX_CLIENT_ID" \
+            --client-secret "$CX_CLIENT_SECRET" \
+            --branch "${GITHUB_REF_NAME}" \
+            --project-name "${GITHUB_REPOSITORY}" \
+            --async
